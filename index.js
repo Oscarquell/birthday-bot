@@ -10,14 +10,24 @@ const port = process.env.PORT || 3000;
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
 const chatId = process.env.CHAT_ID;
 
-// Бишкек = UTC+6
+// UTC+6 (Бишкек)
 function getBishkekDate() {
     const now = new Date();
     return new Date(now.getTime() + 6 * 60 * 60 * 1000);
 }
 
+function loadBirthdays() {
+    try {
+        const raw = fs.readFileSync('./birthdays.json', 'utf-8');
+        return JSON.parse(raw);
+    } catch (e) {
+        console.error("❌ Failed to read birthdays.json:", e.message);
+        return [];
+    }
+}
+
 function getTodayBirthdays() {
-    const data = JSON.parse(fs.readFileSync('./birthdays.json', 'utf-8'));
+    const data = loadBirthdays();
 
     const bishkek = getBishkekDate();
     const day = bishkek.getDate();
@@ -29,59 +39,69 @@ function getTodayBirthdays() {
     });
 }
 
+// 🚀 основная логика (НЕ блокирует HTTP)
 async function sendBirthdays() {
-    console.log("🚀 Trigger received:", new Date().toISOString());
+    console.log("🚀 Job started:", new Date().toISOString());
 
     const people = getTodayBirthdays();
 
     if (!people.length) {
         console.log("📭 No birthdays today");
-        return { ok: true, message: "no birthdays" };
+        return;
     }
 
     const year = getBishkekDate().getFullYear();
 
     for (const person of people) {
-        const age = year - new Date(person.birthday).getFullYear();
-        const phone = person.phone.replace('+', '');
+        try {
+            const birth = new Date(person.birthday);
+            const age = year - birth.getFullYear();
 
-        const text = `🎉 ${person.name} (${age} лет)\n📞 ${phone}`;
+            const phone = person.phone.replace('+', '');
 
-        await bot.sendMessage(chatId, text, {
-            reply_markup: {
-                inline_keyboard: [
-                    [
-                        {
-                            text: "WhatsApp 💬",
-                            url: `https://wa.me/${phone}`
-                        }
+            const text = `🎉 ${person.name} (${age} лет)\n📞 ${phone}`;
+
+            console.log("📤 Sending:", person.name);
+
+            await bot.sendMessage(chatId, text, {
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: "WhatsApp 💬",
+                                url: `https://wa.me/${phone}`
+                            }
+                        ]
                     ]
-                ]
-            }
-        });
+                }
+            });
+
+        } catch (err) {
+            console.error("❌ Send error:", err.message);
+        }
     }
 
-    return { ok: true, sent: people.length };
+    console.log(`✅ Done. Sent: ${people.length}`);
 }
 
-// health check
+// 🟢 health check
 app.get('/', (req, res) => {
     res.send('Bot is alive');
 });
 
-// cron-job endpoint
-app.get('/run-bot', async (req, res) => {
-    console.log('START: run-bot');
-    try {
-        const result = await sendBirthdays();
-        res.json(result);
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: e.message });
-    }
-    console.log('END: run-bot');
+// 🔥 CRON ENDPOINT (ВАЖНО: отвечает СРАЗУ)
+app.get('/run-bot', (req, res) => {
+    console.log("⚡ Trigger received");
+
+    // отвечаем мгновенно (решает timeout проблему)
+    res.json({ ok: true, message: "triggered" });
+
+    // запускаем в фоне (НЕ ждём)
+    sendBirthdays().catch(err => {
+        console.error("❌ Background error:", err.message);
+    });
 });
 
 app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+    console.log(`🚀 Server running on port ${port}`);
 });
