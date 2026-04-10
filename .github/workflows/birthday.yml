@@ -1,8 +1,9 @@
 name: Birthday Bot
 
 on:
+  push:
   schedule:
-    - cron: "*/5 * * * *"  # каждые 5 минут (ТЕСТ)
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:
@@ -10,19 +11,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      - name: Install dependencies
-        run: npm install
+      - run: npm install
 
-      - name: Run bot
-        run: node index.js
+      - run: node index.js
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
