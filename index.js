@@ -71,6 +71,7 @@ app.get('/', (req, res) => {
 
 // cron-job endpoint
 app.get('/run-bot', async (req, res) => {
+    console.log('START: run-bot');
     try {
         const result = await sendBirthdays();
         res.json(result);
@@ -78,6 +79,7 @@ app.get('/run-bot', async (req, res) => {
         console.error(e);
         res.status(500).json({ error: e.message });
     }
+    console.log('END: run-bot');
 });
 
 app.listen(port, () => {
