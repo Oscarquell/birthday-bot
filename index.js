@@ -148,7 +148,7 @@ ${formatted} — ${next.names.length} человек
 
             await bot.sendMessage(
                 chatId,
-                `🎂 Сегодня день рождения\n🎉 ${p.name} (${age} лет)\n📞 ${phone}\n\n🎉 Не забудьте поздравить 🎂`,
+                `🎂 Сегодня день рождения\n🎉 ${p.name} (${age} лет)\n📞 ${phone}\n\n🎉 Не забудьте поздравить 🎂\n\n@aakynbekova_SB @oscarquell`,
                 {
                     reply_markup: {
                         inline_keyboard: [[
